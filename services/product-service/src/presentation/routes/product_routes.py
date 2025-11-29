@@ -36,8 +36,7 @@ router = APIRouter(prefix="/products", tags=["Products"])
 async def create_category(
     request: Request,
     data: CategoryCreate,
-    db: Session = Depends(get_db),
-    current_user_id: UUID = Depends(get_current_user_id)
+    db: Session = Depends(get_db)
 ):
     """
     Create a new category.
@@ -98,8 +97,7 @@ async def update_category(
     request: Request,
     category_id: UUID,
     data: CategoryUpdate,
-    db: Session = Depends(get_db),
-    current_user_id: UUID = Depends(get_current_user_id)
+    db: Session = Depends(get_db)
 ):
     """
     Update category.
@@ -120,8 +118,7 @@ async def update_category(
 async def delete_category(
     request: Request,
     category_id: UUID,
-    db: Session = Depends(get_db),
-    current_user_id: UUID = Depends(get_current_user_id)
+    db: Session = Depends(get_db)
 ):
     """
     Delete category.
@@ -144,8 +141,7 @@ async def delete_category(
 async def create_product(
     request: Request,
     data: ProductCreate,
-    db: Session = Depends(get_db),
-    current_user_id: UUID = Depends(get_current_user_id)
+    db: Session = Depends(get_db)
 ):
     """
     Create a new product.
@@ -251,8 +247,7 @@ async def update_product(
     request: Request,
     product_id: UUID,
     data: ProductUpdate,
-    db: Session = Depends(get_db),
-    current_user_id: UUID = Depends(get_current_user_id)
+    db: Session = Depends(get_db)
 ):
     """
     Update product.
@@ -273,8 +268,7 @@ async def update_product(
 async def delete_product(
     request: Request,
     product_id: UUID,
-    db: Session = Depends(get_db),
-    current_user_id: UUID = Depends(get_current_user_id)
+    db: Session = Depends(get_db)
 ):
     """
     Delete product.
@@ -296,8 +290,7 @@ async def update_stock(
     request: Request,
     product_id: UUID,
     data: StockUpdateRequest,
-    db: Session = Depends(get_db),
-    current_user_id: UUID = Depends(get_current_user_id)
+    db: Session = Depends(get_db)
 ):
     """
     Update product stock.
@@ -328,8 +321,7 @@ async def upload_product_image(
     product_id: UUID,
     file: UploadFile = File(...),
     is_primary: bool = Form(False),
-    db: Session = Depends(get_db),
-    current_user_id: UUID = Depends(get_current_user_id)
+    db: Session = Depends(get_db)
 ):
     """
     Upload a product image.
@@ -379,8 +371,7 @@ async def upload_product_image(
 async def delete_product_image(
     request: Request,
     image_id: UUID,
-    db: Session = Depends(get_db),
-    current_user_id: UUID = Depends(get_current_user_id)
+    db: Session = Depends(get_db)
 ):
     """
     Delete a product image.

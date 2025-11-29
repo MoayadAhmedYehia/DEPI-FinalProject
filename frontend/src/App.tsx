@@ -105,12 +105,12 @@ function App() {
                         }
                     />
                     <Route
+                        path="admin"
+                        element={<Navigate to="/admin/products" replace />}
+                    />
+                    <Route
                         path="admin/products"
-                        element={
-                            <ProtectedRoute>
-                                <AdminProductsPage />
-                            </ProtectedRoute>
-                        }
+                        element={<AdminProductsPage />}
                     />
                 </Route>
 

@@ -113,6 +113,23 @@ class ProductService {
     async deleteProduct(id: string): Promise<void> {
         await apiClient.delete(`/api/products/${id}`);
     }
+
+    async uploadImage(productId: string, file: File, isPrimary: boolean = false): Promise<ProductImage> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('is_primary', String(isPrimary));
+
+        const response = await apiClient.post<ProductImage>(
+            `/api/products/${productId}/images`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
+        );
+        return response.data;
+    }
 }
 
 export const productService = new ProductService();

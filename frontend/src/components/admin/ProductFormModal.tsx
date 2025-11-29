@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { X } from 'lucide-react';
+import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { productService, Product, Category } from '@/services/product.service';
@@ -36,6 +36,8 @@ export default function ProductFormModal({ product, onClose }: ProductFormModalP
     });
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [selectedImage, setSelectedImage] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(product?.images?.[0]?.url || null);
 
     useEffect(() => {
         loadCategories();
@@ -50,6 +52,22 @@ export default function ProductFormModal({ product, onClose }: ProductFormModalP
         }
     };
 
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) {
+                toast.error('Image size must be less than 5MB');
+                return;
+            }
+            setSelectedImage(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImagePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const onSubmit = async (data: ProductFormData) => {
         try {
             setLoading(true);
@@ -59,13 +77,28 @@ export default function ProductFormModal({ product, onClose }: ProductFormModalP
                 product_metadata: {},
             };
 
+            let productId = product?.id;
+
             if (product) {
                 await productService.updateProduct(product.id, payload);
                 toast.success('Product updated successfully');
             } else {
-                await productService.createProduct(payload);
+                const newProduct = await productService.createProduct(payload);
+                productId = newProduct.id;
                 toast.success('Product created successfully');
             }
+
+            // Upload image if selected
+            if (productId && selectedImage) {
+                try {
+                    await productService.uploadImage(productId, selectedImage, true);
+                    toast.success('Image uploaded successfully');
+                } catch (uploadError) {
+                    console.error('Image upload failed:', uploadError);
+                    toast.error('Product created but image upload failed');
+                }
+            }
+
             onClose();
         } catch (error) {
             toast.error(getErrorMessage(error));
@@ -92,6 +125,36 @@ export default function ProductFormModal({ product, onClose }: ProductFormModalP
 
                 {/* Form */}
                 <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-6">
+                    {/* Image Upload */}
+                    <div className="flex justify-center mb-6">
+                        <div className="relative group cursor-pointer">
+                            <div className={`w-32 h-32 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden ${imagePreview ? 'border-primary-500' : 'border-gray-300 hover:border-primary-500'
+                                }`}>
+                                {imagePreview ? (
+                                    <img
+                                        src={imagePreview}
+                                        alt="Preview"
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="text-center p-4">
+                                        <ImageIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                        <span className="text-xs text-gray-500">Upload Image</span>
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
+                                    <Upload className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transform scale-75 group-hover:scale-100 transition-all" />
+                                </div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    onChange={handleImageSelect}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     <Input
                         label="Product Title"
                         placeholder="Enter product title"
