@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import { useAuthStore } from '@/state/auth.store';
-import { useCartStore } from '@/state/cart.store';
 
 // Layouts
 import MainLayout from '@/components/layouts/MainLayout';
@@ -30,20 +29,15 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-    const { loadUser, isAuthenticated } = useAuthStore();
-    const { fetchCart } = useCartStore();
+    const { loadUser } = useAuthStore();
 
     useEffect(() => {
         // Load user from session storage on mount
         loadUser();
     }, [loadUser]);
 
-    useEffect(() => {
-        // Fetch cart when authenticated
-        if (isAuthenticated) {
-            fetchCart();
-        }
-    }, [isAuthenticated, fetchCart]);
+    // Removed automatic cart fetch here to prevent race conditions and excessive calls.
+    // Cart fetching is now handled in MainLayout and CartPage.
 
     return (
         <BrowserRouter>

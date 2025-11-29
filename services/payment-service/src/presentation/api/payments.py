@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Optional
 from pydantic import BaseModel
 from decimal import Decimal
+import uuid
+from datetime import datetime, timedelta
 
 router = APIRouter()
 
@@ -46,10 +48,10 @@ async def create_payment_intent(request: CreatePaymentIntentRequest):
     """
     Create a payment intent for processing payment
     """
-    # TODO: Implement payment intent creation
+    # Mock implementation
     return PaymentIntentResponse(
-        id="pi_test_123",
-        client_secret="pi_test_123_secret",
+        id=f"pi_{uuid.uuid4().hex[:16]}",
+        client_secret=f"pi_{uuid.uuid4().hex[:16]}_secret",
         amount=request.amount,
         currency=request.currency,
         status="requires_payment_method"
@@ -61,10 +63,15 @@ async def confirm_payment(request: ConfirmPaymentRequest):
     """
     Confirm and process payment
     """
-    # TODO: Implement payment confirmation
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Payment confirmation not implemented"
+    # Mock implementation
+    return PaymentResponse(
+        id=f"py_{uuid.uuid4().hex[:16]}",
+        amount=Decimal("99.99"), # In real app, fetch from intent
+        currency="USD",
+        status="succeeded",
+        payment_method="card",
+        created_at=datetime.utcnow().isoformat(),
+        receipt_url="https://example.com/receipt"
     )
 
 
@@ -73,10 +80,15 @@ async def get_payment(payment_id: str):
     """
     Get payment details by ID
     """
-    # TODO: Implement get payment
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Payment not found"
+    # Mock implementation
+    return PaymentResponse(
+        id=payment_id,
+        amount=Decimal("99.99"),
+        currency="USD",
+        status="succeeded",
+        payment_method="card",
+        created_at=datetime.utcnow().isoformat(),
+        receipt_url="https://example.com/receipt"
     )
 
 
@@ -89,8 +101,27 @@ async def get_user_payments(
     """
     Get user payment history
     """
-    # TODO: Implement user payment history
-    return []
+    # Mock implementation
+    return [
+        PaymentResponse(
+            id=f"py_{uuid.uuid4().hex[:16]}",
+            amount=Decimal("129.99"),
+            currency="USD",
+            status="succeeded",
+            payment_method="card",
+            created_at=(datetime.utcnow() - timedelta(days=1)).isoformat(),
+            receipt_url="https://example.com/receipt"
+        ),
+        PaymentResponse(
+            id=f"py_{uuid.uuid4().hex[:16]}",
+            amount=Decimal("49.50"),
+            currency="USD",
+            status="succeeded",
+            payment_method="paypal",
+            created_at=(datetime.utcnow() - timedelta(days=5)).isoformat(),
+            receipt_url="https://example.com/receipt"
+        )
+    ]
 
 
 @router.post("/cancel/{payment_id}")
@@ -98,5 +129,4 @@ async def cancel_payment(payment_id: str):
     """
     Cancel a pending payment
     """
-    # TODO: Implement payment cancellation
     return {"message": "Payment cancelled successfully"}

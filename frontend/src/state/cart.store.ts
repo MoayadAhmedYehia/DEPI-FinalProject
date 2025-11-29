@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 interface CartState {
     cart: Cart | null;
     isLoading: boolean;
+    error: string | null;
 
     // Actions
     fetchCart: () => Promise<void>;
@@ -15,18 +16,22 @@ interface CartState {
     syncPrices: () => Promise<void>;
 }
 
-export const useCartStore = create<CartState>((set) => ({
+export const useCartStore = create<CartState>((set, get) => ({
     cart: null,
     isLoading: false,
+    error: null,
 
     fetchCart: async () => {
-        set({ isLoading: true });
+        if (get().isLoading) return;
+        set({ isLoading: true, error: null });
         try {
             const cart = await cartService.getCart();
-            set({ cart, isLoading: false });
-        } catch (error) {
-            set({ isLoading: false });
-            // Don't show error for empty cart
+            set({ cart, isLoading: false, error: null });
+        } catch (error: any) {
+            const errorMessage = error.response?.data?.detail || error.message || 'Failed to load cart';
+            console.error('Cart fetch error:', error);
+            set({ isLoading: false, error: errorMessage });
+            toast.error(errorMessage);
         }
     },
 
