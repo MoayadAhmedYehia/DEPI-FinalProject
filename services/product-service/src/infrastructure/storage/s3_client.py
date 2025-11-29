@@ -110,9 +110,12 @@ class S3Client:
             )
             
             # Generate URL
+            # Generate URL
             if settings.s3_endpoint_url:
-                # LocalStack URL
-                url = f"{settings.s3_endpoint_url}/{self.bucket_name}/{s3_key}"
+                # LocalStack URL - Convert to localhost for frontend access
+                # The internal URL is http://localstack:4566, but browser needs http://localhost:4566
+                base_url = settings.s3_endpoint_url.replace("localstack", "localhost")
+                url = f"{base_url}/{self.bucket_name}/{s3_key}"
             else:
                 # AWS S3 URL
                 url = f"https://{self.bucket_name}.s3.{settings.aws_region}.amazonaws.com/{s3_key}"
