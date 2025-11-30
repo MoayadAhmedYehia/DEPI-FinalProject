@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { CreditCard, Truck, CheckCircle } from 'lucide-react';
+import { CreditCard, Truck, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 import Button from '@/components/ui/Button';
@@ -21,7 +21,7 @@ interface CheckoutFormData {
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
-  const { cart, isLoading, fetchCart, clearCart } = useCartStore();
+  const { cart, isLoading, fetchCart, clearCart, error } = useCartStore();
   const { register, handleSubmit, formState: { errors } } = useForm<CheckoutFormData>({
     defaultValues: {
       paymentMethod: 'card'
@@ -30,12 +30,17 @@ export default function CheckoutPage() {
 
   const [processing, setProcessing] = useState(false);
   const [step, setStep] = useState<'shipping' | 'payment' | 'success'>('shipping');
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    fetchCart();
+    const initCart = async () => {
+      await fetchCart();
+      setIsInitializing(false);
+    };
+    initCart();
   }, [fetchCart]);
 
-  if (isLoading) {
+  if (isLoading || isInitializing) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
@@ -43,10 +48,31 @@ export default function CheckoutPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+        <div className="bg-red-100 p-6 rounded-full mb-6">
+          <AlertCircle className="w-12 h-12 text-red-600" />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Cart</h2>
+        <p className="text-gray-600 mb-8">{error}</p>
+        <Button onClick={() => window.location.reload()}>Try Again</Button>
+      </div>
+    );
+  }
+
   if (!cart || !cart.items || cart.items.length === 0) {
     if (step !== 'success') {
-      navigate('/cart');
-      return null;
+      return (
+        <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+          <div className="bg-gray-100 p-6 rounded-full mb-6">
+            <Truck className="w-12 h-12 text-gray-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Cart is Empty</h2>
+          <p className="text-gray-600 mb-8">Add some items to your cart to proceed to checkout.</p>
+          <Button onClick={() => navigate('/products')}>Browse Products</Button>
+        </div>
+      );
     }
   }
 
@@ -61,7 +87,7 @@ export default function CheckoutPage() {
 
       // 1. Create Payment Intent
       const intent = await paymentService.createPaymentIntent({
-        amount: cart!.subtotal,
+        amount: cart?.subtotal || 0,
         currency: 'USD',
         cart_id: cart!.id,
         payment_method: data.paymentMethod,
@@ -222,7 +248,7 @@ export default function CheckoutPage() {
                 isLoading={processing}
                 className="w-full md:w-auto px-8"
               >
-                {step === 'shipping' ? 'Continue to Payment' : `Pay $${cart?.subtotal.toFixed(2)}`}
+                {step === 'shipping' ? 'Continue to Payment' : `Pay $${(cart?.subtotal || 0).toFixed(2)}`}
               </Button>
             </div>
           </form>
@@ -246,7 +272,7 @@ export default function CheckoutPage() {
                   <div className="flex-1">
                     <h4 className="text-sm font-medium text-gray-900 line-clamp-1">{item.product_title}</h4>
                     <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                    <p className="text-sm font-medium text-gray-900">${item.total_price.toFixed(2)}</p>
+                    <p className="text-sm font-medium text-gray-900">${(item.total_price || 0).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -255,7 +281,7 @@ export default function CheckoutPage() {
             <div className="space-y-4 border-t border-gray-200 pt-4">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
-                <span>${cart?.subtotal.toFixed(2)}</span>
+                <span>${(cart?.subtotal || 0).toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Shipping</span>
@@ -263,7 +289,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between text-lg font-bold text-gray-900 pt-2 border-t border-gray-200">
                 <span>Total</span>
-                <span>${cart?.subtotal.toFixed(2)}</span>
+                <span>${(cart?.subtotal || 0).toFixed(2)}</span>
               </div>
             </div>
           </div>

@@ -60,6 +60,11 @@ services:
       - REFRESH_TOKEN_EXPIRE_DAYS=7
       - APP_NAME=AuthService
       - LOG_LEVEL=INFO
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_REGION=us-east-1
+      - S3_BUCKET_NAME=auth-service-images
+      - S3_ENDPOINT_URL=http://localstack:4566
     depends_on:
       postgres:
         condition: service_healthy
