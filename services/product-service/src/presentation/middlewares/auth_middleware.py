@@ -11,6 +11,7 @@ from src.config.settings import settings
 security = HTTPBearer()
 
 
+
 def verify_access_token(token: str) -> Optional[str]:
     """Verify JWT access token and return user_id"""
     try:
@@ -21,11 +22,20 @@ def verify_access_token(token: str) -> Optional[str]:
         )
         
         if payload.get("type") != "access":
-            return None
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token type must be 'access'",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         
         return payload.get("sub")
-    except JWTError:
-        return None
+    except JWTError as e:
+        # DEBUG: Expose specific error for debugging
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Could not validate credentials: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 async def get_current_user_id(
@@ -36,21 +46,15 @@ async def get_current_user_id(
     Use this for protected endpoints.
     """
     token = credentials.credentials
+    # verify_access_token now raises HTTPException directly with details
     user_id_str = verify_access_token(token)
-    
-    if user_id_str is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
     
     try:
         return UUID(user_id_str)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token format",
+            detail="Invalid user ID format in token",
         )
 
 

@@ -4,6 +4,7 @@ export interface User {
     id: string;
     email: string;
     full_name: string;
+    profile_picture_url?: string;
     created_at: string;
 }
 
@@ -33,7 +34,12 @@ export interface RefreshTokenResponse {
 
 class AuthService {
     async login(data: LoginRequest): Promise<AuthResponse> {
+        console.log('[AUTH] Login attempt for:', data.email);
         const response = await apiClient.post<AuthResponse>('/api/auth/login', data);
+        console.log('[AUTH] Full response object:', response);
+        console.log('[AUTH] Response data:', response.data);
+        console.log('[AUTH] Has access_token?', !!response.data?.access_token);
+        console.log('[AUTH] Has user?', !!response.data?.user);
         this.setTokens(response.data);
         return response.data;
     }
@@ -73,11 +79,14 @@ class AuthService {
     }
 
     private setTokens(data: AuthResponse | RefreshTokenResponse): void {
+        console.log('[AUTH] setTokens called with data:', data);
         sessionStorage.setItem('access_token', data.access_token);
         sessionStorage.setItem('refresh_token', data.refresh_token);
+        console.log('[AUTH] Tokens stored. Access token:', data.access_token?.substring(0, 20) + '...');
 
         if ('user' in data) {
             sessionStorage.setItem('user', JSON.stringify(data.user));
+            console.log('[AUTH] User stored:', data.user);
         }
     }
 
@@ -89,11 +98,32 @@ class AuthService {
 
     getStoredUser(): User | null {
         const userStr = sessionStorage.getItem('user');
-        return userStr ? JSON.parse(userStr) : null;
+        try {
+            return userStr ? JSON.parse(userStr) : null;
+        } catch (error) {
+            console.error('Failed to parse stored user:', error);
+            sessionStorage.removeItem('user');
+            return null;
+        }
     }
 
     isAuthenticated(): boolean {
         return !!sessionStorage.getItem('access_token');
+    }
+
+    async uploadProfilePicture(file: File): Promise<User> {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await apiClient.put<User>('/api/auth/profile-picture', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
+        // Update stored user
+        sessionStorage.setItem('user', JSON.stringify(response.data));
+        return response.data;
     }
 }
 

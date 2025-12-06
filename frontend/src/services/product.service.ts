@@ -4,10 +4,10 @@ export interface Product {
     id: string;
     title: string;
     description: string | null;
-    price: number;
+    price: string | number;  // API returns as string, needs conversion
     stock: number;
     category_id: string | null;
-    metadata: Record<string, any>;
+    product_metadata: Record<string, any>;
     is_active: boolean;
     in_stock: boolean;
     created_at: string;
@@ -81,6 +81,54 @@ class ProductService {
     async getFeaturedProducts(limit = 8): Promise<Product[]> {
         const response = await this.getProducts({ page: 1, page_size: limit, is_active: true });
         return response.items;
+    }
+
+    // Admin CRUD operations
+    async createProduct(data: {
+        title: string;
+        description?: string;
+        price: number;
+        stock: number;
+        category_id?: string;
+        product_metadata?: Record<string, any>;
+        is_active?: boolean;
+    }): Promise<Product> {
+        const response = await apiClient.post<Product>('/api/products', data);
+        return response.data;
+    }
+
+    async updateProduct(id: string, data: {
+        title?: string;
+        description?: string;
+        price?: number;
+        stock?: number;
+        category_id?: string;
+        product_metadata?: Record<string, any>;
+        is_active?: boolean;
+    }): Promise<Product> {
+        const response = await apiClient.put<Product>(`/api/products/${id}`, data);
+        return response.data;
+    }
+
+    async deleteProduct(id: string): Promise<void> {
+        await apiClient.delete(`/api/products/${id}`);
+    }
+
+    async uploadImage(productId: string, file: File, isPrimary: boolean = false): Promise<ProductImage> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('is_primary', String(isPrimary));
+
+        const response = await apiClient.post<ProductImage>(
+            `/api/products/${productId}/images`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
+        );
+        return response.data;
     }
 }
 

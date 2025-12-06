@@ -1,99 +1,19 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Databases
-  auth-db:
+  # Shared PostgreSQL Database
+  postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: auth_db
+      POSTGRES_DB: ecommerce_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
-      - auth_db_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  product-db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: product_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5433:5432"
-    volumes:
-      - product_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  cart-db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: cart_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5434:5432"
-    volumes:
-      - cart_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  payment-db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: payment_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5435:5432"
-    volumes:
-      - payment_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  analytics-db:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: analytics_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5436:5432"
-    volumes:
-      - analytics_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  ai-search-db:
-    image: pgvector/pgvector:pg15
-    environment:
-      POSTGRES_DB: ai_search_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5437:5432"
-    volumes:
-      - ai_search_db_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -106,7 +26,7 @@ services:
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -119,9 +39,10 @@ services:
     environment:
       - SERVICES=s3
       - DEBUG=1
-      - DATA_DIR=/tmp/localstack/data
+      - DATA_DIR=/var/lib/localstack
     volumes:
-      - localstack_data:/tmp/localstack
+      - localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
 
   # Authentication Service
   auth-service:
@@ -131,7 +52,7 @@ services:
     ports:
       - "8001:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@auth-db:5432/auth_db
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ecommerce_db
       - REDIS_URL=redis://redis:6379/0
       - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
       - JWT_ALGORITHM=HS256
@@ -139,8 +60,13 @@ services:
       - REFRESH_TOKEN_EXPIRE_DAYS=7
       - APP_NAME=AuthService
       - LOG_LEVEL=INFO
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_REGION=us-east-1
+      - S3_BUCKET_NAME=auth-service-images
+      - S3_ENDPOINT_URL=http://localstack:4566
     depends_on:
-      auth-db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -156,7 +82,7 @@ services:
     ports:
       - "8002:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@product-db:5432/product_db
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ecommerce_db
       - REDIS_URL=redis://redis:6379/1
       - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
       - JWT_ALGORITHM=HS256
@@ -168,7 +94,7 @@ services:
       - APP_NAME=ProductService
       - LOG_LEVEL=INFO
     depends_on:
-      product-db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -186,7 +112,7 @@ services:
     ports:
       - "8003:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@cart-db:5432/cart_db
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ecommerce_db
       - REDIS_URL=redis://redis:6379/2
       - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
       - JWT_ALGORITHM=HS256
@@ -194,7 +120,7 @@ services:
       - APP_NAME=CartService
       - LOG_LEVEL=INFO
     depends_on:
-      cart-db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -210,17 +136,30 @@ services:
     ports:
       - "8004:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@payment-db:5432/payment_db
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ecommerce_db
       - REDIS_URL=redis://redis:6379/3
       - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
       - JWT_ALGORITHM=HS256
       - STRIPE_API_KEY=sk_test_mock_key
+      - STRIPE_SECRET_KEY=sk_test_mock_key
+      - STRIPE_PUBLISHABLE_KEY=pk_test_mock_key
       - STRIPE_WEBHOOK_SECRET=whsec_mock_secret
       - PAYMENT_MODE=mock
       - APP_NAME=PaymentService
       - LOG_LEVEL=INFO
+      - CART_SERVICE_URL=http://cart-service:8000
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - PRODUCT_SERVICE_URL=http://product-service:8000
+      - SMTP_HOST=localhost
+      - SMTP_PORT=1025
+      - SMTP_USER=user
+      - SMTP_PASSWORD=password
+      - EMAIL_FROM=noreply@example.com
+      - CELERY_BROKER_URL=redis://redis:6379/3
+      - CELERY_RESULT_BACKEND=redis://redis:6379/3
+      - ENCRYPTION_KEY=your-super-secret-encryption-key-32-chars
     depends_on:
-      payment-db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -236,14 +175,14 @@ services:
     ports:
       - "8005:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@analytics-db:5432/analytics_db
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ecommerce_db
       - REDIS_URL=redis://redis:6379/4
       - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
       - JWT_ALGORITHM=HS256
       - APP_NAME=AnalyticsService
       - LOG_LEVEL=INFO
     depends_on:
-      analytics-db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -251,40 +190,62 @@ services:
       - ./services/analytics-service:/app
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 
-  # AI Search Service
-  ai-search-service:
+  # Order Service
+  order-service:
     build:
-      context: ./services/ai-search-service
+      context: ./services/order-service
       dockerfile: Dockerfile
     ports:
       - "8006:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@ai-search-db:5432/ai_search_db
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ecommerce_db
       - REDIS_URL=redis://redis:6379/5
       - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
       - JWT_ALGORITHM=HS256
-      - PRODUCT_SERVICE_URL=http://product-service:8000
-      - EMBEDDING_MODEL=all-MiniLM-L6-v2
-      - APP_NAME=AISearchService
+      - APP_NAME=OrderService
       - LOG_LEVEL=INFO
     depends_on:
-      ai-search-db:
+      postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
-      - ./services/ai-search-service:/app
+      - ./services/order-service:/app
     command: uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
 
+  # Frontend Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost
+      - NODE_ENV=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      cart-service:
+        condition: service_started
+      payment-service:
+        condition: service_started
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+
 volumes:
-  auth_db_data:
-  product_db_data:
-  cart_db_data:
-  payment_db_data:
-  analytics_db_data:
-  ai_search_db_data:
+  postgres_data:
   redis_data:
   localstack_data:
+
 
 networks:
   default:

@@ -27,6 +27,21 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/cart/, '/cart'),
       },
+      '/api/payments': {
+        target: 'http://localhost:8004',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/payments/, '/payments'),
+      },
+      '/api/analytics': {
+        target: 'http://localhost:8005',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/analytics/, '/analytics'),
+      },
+      '/api/orders': {
+        target: 'http://localhost:8006',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/orders/, '/orders'),
+      },
     },
   },
 })

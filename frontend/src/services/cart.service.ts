@@ -1,5 +1,4 @@
 import apiClient from './api';
-import { Product } from './product.service';
 
 export interface CartItem {
     id: string;
@@ -53,7 +52,7 @@ export interface CheckoutResponse {
 
 class CartService {
     async getCart(): Promise<Cart> {
-        const response = await apiClient.get<Cart>('/api/cart');
+        const response = await apiClient.get<Cart>('/api/cart/');
         return response.data;
     }
 
@@ -73,7 +72,7 @@ class CartService {
     }
 
     async clearCart(): Promise<void> {
-        await apiClient.delete('/api/cart');
+        await apiClient.delete('/api/cart/');
     }
 
     async prepareCheckout(data: CheckoutRequest): Promise<CheckoutResponse> {

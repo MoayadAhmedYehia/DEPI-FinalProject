@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ShoppingCart, User, LogOut, Search, Menu } from 'lucide-react';
+import { useEffect } from 'react';
+import { ShoppingCart, User, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/state/auth.store';
 import { useCartStore } from '@/state/cart.store';
@@ -8,8 +8,15 @@ import Button from '@/components/ui/Button';
 
 export default function MainLayout() {
     const { user, isAuthenticated, logout } = useAuthStore();
-    const { cart } = useCartStore();
+    const { cart, fetchCart, isLoading, error } = useCartStore();
     const totalItems = cart?.total_items || 0;
+
+    // Fetch cart if authenticated and not loaded
+    useEffect(() => {
+        if (isAuthenticated && !cart && !isLoading && !error) {
+            fetchCart();
+        }
+    }, [isAuthenticated, cart, isLoading, error, fetchCart]);
 
     return (
         <div className="min-h-screen flex flex-col">
